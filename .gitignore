@@ -1,0 +1,26 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+*.egg-info/
+
+# web UI lint tooling
+node_modules/
+
+# the app's data: converted drawings, caches, runs, uploads
+data/
+dwg-takeoff-data/
+
+# client drawings stay local (put .dwg/.dxf files in samples/)
+samples/*
+!samples/README.md
+
+# Claude Code runtime state (the project skill in .claude/skills/ is committed)
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
+
+.DS_Store

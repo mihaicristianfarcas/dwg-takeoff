@@ -1,0 +1,76 @@
+[project]
+name = "dwg-takeoff"
+version = "0.1.0"
+description = "Quantity takeoff from DWG/DXF drawings: an AI plans what to measure, a deterministic engine measures it, every number traceable to the drawing"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["dwg", "dxf", "cad", "quantity takeoff", "construction", "cost estimating", "ezdxf", "llm"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: Developers",
+    "Natural Language :: Romanian",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+]
+authors = [
+    { name = "Mihai-Cristian Farcaș", email = "146859576+mihaicristianfarcas@users.noreply.github.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=1.14.0",
+    "ezdxf>=1.4.4",
+    "fastapi>=0.143.1",
+    "matplotlib>=3.11.2",
+    "numpy>=2.5.4",
+    "openai>=3.31.0",
+    "openpyxl>=3.1.5",
+    "pypdf>=6.20.1",
+    "python-multipart>=0.0.32",
+    "shapely>=2.2.0",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/mihaicristianfarcas/dwg-takeoff"
+Documentation = "https://github.com/mihaicristianfarcas/dwg-takeoff/tree/main/docs"
+Issues = "https://github.com/mihaicristianfarcas/dwg-takeoff/issues"
+
+[project.scripts]
+dwg-takeoff = "dwg_takeoff:main"
+
+[build-system]
+requires = ["uv_build>=0.13.0,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "playwright>=1.64.0",
+    "pytest>=9.1.1",
+    "ruff>=0.17.0",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "C4", "SIM", "RUF"]
+ignore = [
+    "E501",    # the formatter wraps code; long strings and comments are left as written
+    "RUF001",  # Romanian text and typographic characters (×, –, „ ”) are intended
+    "RUF002",
+    "RUF003",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["dwg_takeoff"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

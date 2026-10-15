@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DWG Takeoff — antemăsurători din planșe</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%2314213a'/%3E%3Cpath d='M5 19h14M7 19V10l5-4 5 4v9M10 19v-5h4v5' fill='none' stroke='%23e9eef7' stroke-width='1.8' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <meta name="theme-color" content="#14213a">
+  <meta name="color-scheme" content="light dark">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="brand">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 20h18M5 20V9l7-5 7 5v11M9 20v-6h6v6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      <span>DWG Takeoff</span>
+    </h1>
+    <div class="project-picker">
+      <label for="projectSelect" class="muted">Planșă</label>
+      <select id="projectSelect"></select>
+      <label class="btn btn-ghost" title="Încarcă un fișier .dwg sau .dxf">
+        <input type="file" id="uploadInput" accept=".dwg,.dxf" hidden>
+        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 16V4m0 0-4 4m4-4 4 4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Încarcă DWG
+      </label>
+    </div>
+    <div class="status-chips" id="statusChips"></div>
+    <button class="btn btn-ghost help-btn" id="helpBtn" title="Cum se folosește" aria-label="Ajutor">?</button>
+  </header>
+
+  <main class="layout">
+    <section class="viewer-pane">
+      <div class="viewer-toolbar">
+        <button class="btn btn-sm" id="fitBtn" title="Încadrează planul">Încadrează</button>
+        <button class="btn btn-sm" id="rotateBtn" title="Comută orientarea">Orientare planșă</button>
+        <button class="btn btn-sm" id="rulerBtn" title="Măsoară pe plan: click = punct, dublu-click = închide poligonul (arie), Esc = șterge">Riglă</button>
+        <label class="slider" title="Opacitatea planului de fundal">Fundal
+          <input type="range" id="bgOpacity" min="0" max="1" step="0.05" value="0.55">
+        </label>
+        <span class="spacer"></span>
+        <span class="muted small" id="tileState" aria-live="polite"></span>
+        <span class="muted small" id="cursorPos"></span>
+      </div>
+      <div class="viewer" id="viewer" tabindex="0" aria-label="Planul desenului: rotița sau ciupirea măresc, tragerea mută, + / − / 0 / săgeți din tastatură">
+        <svg id="svg" xmlns="http://www.w3.org/2000/svg">
+          <g id="content">
+            <g id="bgLayer"><image id="bgImage" preserveAspectRatio="none"/><g id="tiles"></g></g>
+            <path id="siteOutline" class="site-outline"/>
+            <g id="layerHl"></g>
+            <g id="overlays"></g>
+            <g id="featureHl"></g>
+            <g id="rulerG"></g>
+          </g>
+        </svg>
+        <div class="viewer-msg" id="viewerMsg">Se încarcă…</div>
+        <div class="units-banner" id="unitsBanner" hidden></div>
+        <div class="scale-bar" id="scaleBar" hidden aria-hidden="true">
+          <svg class="north" id="northArrow" viewBox="0 0 20 28" width="16" height="22"><path d="M10 1 L17 25 L10 19 L3 25 Z" fill="currentColor"/></svg>
+          <div><div class="sb-line" id="scaleBarLine"></div><div class="sb-label" id="scaleBarLabel"></div></div>
+        </div>
+        <div class="map-legend" id="mapLegend" hidden></div>
+        <div class="ruler-box" id="rulerBox" hidden></div>
+      </div>
+    </section>
+
+    <section class="side-pane">
+      <nav class="tabs" role="tablist" id="tabs" aria-label="Secțiuni">
+        <button class="tab active" data-tab="ask" role="tab" aria-selected="true" aria-controls="tab-ask" id="t-ask">Cantități</button>
+        <button class="tab" data-tab="explore" role="tab" aria-selected="false" aria-controls="tab-explore" id="t-explore" tabindex="-1">Explorare planșă</button>
+        <button class="tab" data-tab="history" role="tab" aria-selected="false" aria-controls="tab-history" id="t-history" tabindex="-1">Istoric</button>
+      </nav>
+
+      <div class="tab-panel" id="tab-ask" role="tabpanel" aria-labelledby="t-ask">
+        <div class="ask-box">
+          <label for="query" class="label">Ce trebuie măsurat?</label>
+          <textarea id="query" rows="4" placeholder="ex. suprafața de pavaj de 8 cm, ml de bordură, suprafața de gazon, numărul de arbori…"></textarea>
+          <div class="reuse-hint small" id="reuseHint" hidden></div>
+          <details class="info-box" id="infoBox">
+            <summary><span>Informații de proiect</span> <span class="small muted" id="infoSummary">grosimi, specificații, răspunsuri ale clientului</span></summary>
+            <textarea id="projectNotes" rows="4" placeholder="ex. Sistem rutier SR1: pavele 8 cm, nisip 4 cm, beton C25/30 20 cm, balast 30 cm. Placă parter 18 cm. Fundații continue 60×120 cm."></textarea>
+            <div class="info-docs" id="infoDocs"></div>
+            <div class="info-actions">
+              <label class="btn btn-sm" title="Detalii de sistem rutier, plan de fundații, caiet de sarcini…">
+                <input type="file" id="refInput" accept=".pdf,.dwg,.dxf,.txt,.md" hidden> + Document de referință
+              </label>
+              <span class="small muted" id="notesState"></span>
+            </div>
+            <div class="small muted">AI-ul citește aceste informații (nu le măsoară): grosimile găsite aici devin factori „din documente” în loc de „presupus”.</div>
+          </details>
+          <div class="chips" id="suggestions" hidden></div>
+          <div class="ask-actions">
+            <label class="small muted">Motor AI
+              <select id="backend"></select>
+            </label>
+            <label class="small muted">Analiză
+              <select id="effort">
+                <option value="low">rapidă</option>
+                <option value="medium" selected>normală</option>
+                <option value="high">aprofundată</option>
+              </select>
+            </label>
+            <span class="spacer"></span>
+            <button class="btn btn-primary" id="askBtn">Analizează</button>
+          </div>
+          <div class="progress" id="progress" hidden>
+            <div class="progress-head">
+              <span class="pulse"></span>
+              <b id="progressStage"></b>
+              <span class="spacer"></span>
+              <span class="muted small" id="progressTime"></span>
+              <button class="btn-link danger" id="cancelBtn" title="Oprește analiza">Anulează</button>
+            </div>
+            <div class="bar" id="progressBarWrap"><span id="progressBar"></span></div>
+            <div class="small muted" id="progressHint"></div>
+            <ol class="timeline" id="timeline"></ol>
+          </div>
+          <div class="error" id="askError" hidden></div>
+        </div>
+        <div id="results"></div>
+      </div>
+
+      <div class="tab-panel" id="tab-explore" role="tabpanel" aria-labelledby="t-explore" hidden>
+        <div id="explorer"></div>
+      </div>
+
+      <div class="tab-panel" id="tab-history" role="tabpanel" aria-labelledby="t-history" hidden>
+        <div id="history"></div>
+      </div>
+    </section>
+  </main>
+
+  <dialog class="help" id="helpDlg" aria-labelledby="helpTitle">
+    <h2 id="helpTitle">Cum se folosește</h2>
+    <ol>
+      <li><b>Încarcă</b> un .dwg / .dxf (buton sau trage fișierul pe pagină). Verifică <b>unitățile</b> afișate: toate cantitățile depind de ele.</li>
+      <li><b>Scrie cererea</b> în cuvintele clientului (sau adaugă sugestiile din legendă) și apasă <b>Analizează</b>. AI-ul alege doar ce se măsoară; cifrele vin din geometrie.</li>
+      <li><b>Verifică</b>: click pe un element arată sursele pe plan, formula, factorii (galben = presupus) și lista entităților cu handle-uri AutoCAD; click pe o entitate o localizează.</li>
+      <li><b>Corectează fără AI</b>: modifică un factor, elimină o sursă (×), schimbă toleranța sau adaugă elemente din <i>Explorare planșă → Catalogul planșei</i> (butonul +). <b>Salvează</b> păstrează varianta în Istoric.</li>
+      <li><b>Exportă</b> în Excel (factorii rămân editabili, totalurile se recalculează) sau copiază tabelul.</li>
+    </ol>
+    <h3>Plan</h3>
+    <ul>
+      <li>Rotița / ciupire = zoom, tragere = deplasare; tastatura: <kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd> și săgețile.</li>
+      <li><b>Riglă</b>: click = punct, dublu-click = închide suprafața, <kbd>Esc</kbd> = șterge. <b>Calibrează unitățile…</b> fixează scara după o lungime cunoscută.</li>
+      <li><b>Copiază selecția pentru AutoCAD</b> (în lista de entități) dă un cod AutoLISP care selectează exact entitățile numărate.</li>
+    </ul>
+    <h3>Taste</h3>
+    <ul><li><kbd>Ctrl/⌘</kbd>+<kbd>Enter</kbd> în cerere = Analizează · <kbd>←</kbd> <kbd>→</kbd> pe file = schimbă fila</li></ul>
+    <form method="dialog"><button class="btn btn-primary">Am înțeles</button></form>
+  </dialog>
+  <div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
+  <div class="upload-bar" id="uploadBar" hidden><span id="uploadLabel"></span><div class="bar"><span id="uploadFill"></span></div></div>
+  <div class="drop-overlay" id="dropOverlay" hidden><div>Eliberează fișierul .dwg / .dxf pentru a-l încărca</div></div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
